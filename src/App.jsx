@@ -1,26 +1,31 @@
 import { async } from '@firebase/util'
 import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateCurrentUser } from 'firebase/auth'
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import './App.css'
 import { db, auth } from './firebase'
 function App() {
   const [user , setUser] = useState('')
+  const [convertationCode , setConversationCode] = useState('')
   useEffect(() => {
  onAuthStateChanged(auth , CurrentUser => {  
    setUser(CurrentUser)
  })
   },[])
-
+  const getmessages = async () => {
+    const data = await getDocs(q)
+    setMessages(data.docs.map((data) => (
+      {...data.data() , id : data.id}
+    )))
+  }
 const messageRef = collection(db , 'messages')
-const q = query(messageRef,orderBy('createdAt'));
+const q = query(messageRef,where('convertationCode' ,'==', convertationCode) ,orderBy('createdAt'));
 const [messages , setMessages] = useState([])
-const getmessages = async () => {
-  const data = await getDocs(q)
-  setMessages(data.docs.map((data) => (
-    {...data.data() , id : data.id}
-  )))
-}
+useEffect(() => {
+
+  getmessages()
+},[convertationCode])
+
 useEffect(() => {
  getmessages();
 } , [])
@@ -52,7 +57,8 @@ useEffect(() => {
   await addDoc(messageRef, {
     messagetext,
     userEmail  : user?.email,
-    createdAt : new Date().getTime()
+    createdAt : new Date().getTime(),
+    convertationCode
   })
   
   getmessages()
@@ -66,6 +72,7 @@ useEffect(() => {
   await deleteDoc(doc(db,'messages',id))
   getmessages()
  }
+
   return (
     <div className="App">
 {!user && <>     {loginstate =='' &&  <>
@@ -82,8 +89,13 @@ useEffect(() => {
      <button onClick={() =>  setLoginState('')}>return</button>
      </>)} </>}
    {user && <button onClick={logOut}>Log Out</button>}
+   <br />
+   convertation code : <input type="text" value={convertationCode} onChange={(e) => {setConversationCode(e.target.value)}} />
+   
     <hr />
     User   : <>{user?.email}</> 
+    <br />
+    Session : <>{convertationCode}</>
      <h1>Chat</h1> 
       {
         messages?.map((e) => {
